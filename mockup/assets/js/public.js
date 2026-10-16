@@ -143,6 +143,9 @@ function initVideos(){var vs=$$('video[data-loop]');if(!vs.length)return;
   function sync(v){if(!DP.motionPaused()&&v._in!==false){var p=v.play();if(p&&p.catch)p.catch(function(){})}else v.pause()}
   var io='IntersectionObserver' in window?new IntersectionObserver(function(es){es.forEach(function(e){e.target._in=e.isIntersecting;sync(e.target)})},{threshold:.15}):null;
   vs.forEach(function(v){if(v.offsetParent!==null){v.preload='auto';v.muted=true;sync(v)}if(io)io.observe(v);else sync(v)});
+  /* videos further down: start fetching them ~1.5 screens before they appear so they play the moment they're seen */
+  if('IntersectionObserver' in window){var pf=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting&&e.target.offsetParent!==null){var v=e.target;v.preload='auto';if(v.readyState<2)v.load();pf.unobserve(v)}})},{rootMargin:'1200px 0px'});
+    vs.forEach(function(v){if(v.preload!=='auto')pf.observe(v)})}
   document.addEventListener('dp:motion',function(){vs.forEach(sync)})}
 function initHero(){var heroes=$$('[data-hero]');
   /* the sign powers up on every visit, right away: it only waits for the heading font (max 0.7 s) so it never flashes in the wrong font */
