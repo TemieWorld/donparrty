@@ -109,7 +109,7 @@ function initSmooth(){
   var SPEED=.6,SMOOTH=.42,MAXV=2200,sm=SMOOTH;
   var de=document.documentElement,cur=scrollY,tgt=cur,vel=0,lastSet=cur,raf=0,last=0,anim=null;
   function live(){return !DP.motionPaused()}
-  function max(){return Math.max(0,de.scrollHeight-innerHeight)}
+  function max(){return Math.max(0,de.scrollHeight-de.clientHeight)}
   function clamp(v){return Math.min(max(),Math.max(0,v))}
   function ease(p){return p<.5?8*p*p*p*p:1-Math.pow(-2*p+2,4)/2}
   /* critically damped spring (smooth-damp): velocity ramps up and eases out, no sudden start */
@@ -118,37 +118,35 @@ function initSmooth(){
   function tick(t){raf=0;var dt=Math.min(.05,(t-(last||t-16))/1000);last=t;
     if(anim){var p=Math.min(1,(t-anim.t0)/anim.d);cur=anim.from+(anim.to-anim.from)*ease(p);tgt=cur;vel=0;if(p>=1)anim=null}
     else{damp(dt);if(Math.abs(tgt-cur)<.3&&Math.abs(vel)<6){cur=tgt;vel=0}}
+    var mx=max();if(tgt>mx)tgt=mx;if(cur>mx){cur=mx;vel=0}if(cur<0){cur=0;vel=0}
     lastSet=cur;scrollTo(0,cur);
     if(anim||cur!==tgt||vel)raf=requestAnimationFrame(tick);else last=0}
   function run(){if(!raf){last=0;raf=requestAnimationFrame(tick)}}
   /* anything else that moves the page (keyboard, scrollbar drag, jump links) just resyncs us */
-  addEventListener('scroll',function(){if(Math.abs(scrollY-lastSet)>1.5){cur=tgt=lastSet=scrollY;vel=0;anim=null}},{passive:true});
+  addEventListener('scroll',function(){if(raf)return;if(Math.abs(scrollY-lastSet)>1.5){cur=tgt=lastSet=scrollY;vel=0;anim=null}},{passive:true});
   DP.scrollToY=function(y,smooth){y=clamp(y);if(!smooth||!live()||Math.abs(y-scrollY)<2){anim=null;vel=0;cur=tgt=lastSet=y;scrollTo(0,y);return}
     cur=scrollY;anim={from:cur,to:y,t0:performance.now(),d:Math.min(1700,Math.max(900,Math.abs(y-cur)*.85))};run()};
-  function inner(el,dy){for(;el&&el!==de&&el.nodeType===1;el=el.parentElement){var cs=getComputedStyle(el);
+  function inner(el,dy){for(;el&&el!==de&&el!==document.body&&el.nodeType===1;el=el.parentElement){var cs=getComputedStyle(el);
     if(/(auto|scroll)/.test(cs.overflowY)&&el.scrollHeight>el.clientHeight+1){if(dy>0?el.scrollTop+el.clientHeight<el.scrollHeight-1:el.scrollTop>0)return true}}return false}
   addEventListener('wheel',function(e){
     if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
     e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
     var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);sm=SMOOTH;run()},{passive:false});
-  /* phone touch smoothing: on by default for touch devices (?touch=0 turns it off, ?touch=1 back on).
-     Same spring as the wheel instead of the browser's own touch inertia. */
-  var tq=(location.search.match(/[?&]touch=([01])/)||[])[1];if(tq==='1')DP.lsSet('dp_touch','1');if(tq==='0')DP.lsSet('dp_touch','0');
-  var touchDev=('ontouchstart' in window)||(navigator.maxTouchPoints>0),touchOn=touchDev&&DP.lsGet('dp_touch','1')!=='0';
+  /* phone touch smoothing: touch devices only. Same spring as the wheel instead of the browser's own touch inertia. */
+  var touchOn=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
   if(touchOn){var ty=0,tx=0,ts=0,mode=0,hist=[];
     addEventListener('touchstart',function(e){mode=0;if(e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)||e.target.closest('input,textarea,select,iframe,video[controls]')){mode=-1;return}
       var t=e.touches[0];ty=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
     addEventListener('touchmove',function(e){if(mode===-1)return;if(e.touches.length!==1){mode=-1;return}var t=e.touches[0];
       if(mode===0){var ax=Math.abs(t.clientX-tx),ay=Math.abs(t.clientY-ty);if(ax<4&&ay<4)return;mode=ay>=ax?1:-1;if(mode===-1)return}
-      if(e.cancelable)e.preventDefault();hist.push([performance.now(),t.clientY]);if(hist.length>6)hist.shift();
+      /* the browser already started scrolling on its own: step aside completely */
+      if(!e.cancelable){mode=-1;cur=tgt=lastSet=scrollY;vel=0;anim=null;return}
+      e.preventDefault();var now=performance.now();hist.push([now,t.clientY]);while(hist.length>2&&now-hist[0][0]>110)hist.shift();
       tgt=clamp(ts-(t.clientY-ty));sm=.14;run()},{passive:false});
     addEventListener('touchend',function(){if(mode!==1)return;mode=0;var n=hist.length,a=hist[0],b=hist[n-1],dt=(b[0]-a[0])/1000;
-      if(n>1&&dt>0&&performance.now()-b[0]<90)tgt=clamp(tgt-(b[1]-a[1])/dt*.3);sm=.5;run()},{passive:true});
+      if(n>1&&dt>.016&&performance.now()-b[0]<90){var f=-(b[1]-a[1])/dt*.22,L=innerHeight*.9;tgt=clamp(tgt+Math.max(-L,Math.min(L,f)))}sm=.5;run()},{passive:true});
+    addEventListener('touchcancel',function(){mode=0;sm=.5;run()},{passive:true});
   }
-  if(/[?&]debug=1/.test(location.search)){var bd=document.createElement('div'),v=((Array.prototype.find.call(document.scripts,function(s){return /public\.js/.test(s.src)})||{}).src||'').split('v=')[1]||'?';
-    function dbgt(){bd.textContent='build '+v+' | touch dev '+touchDev+' | touch smooth '+touchOn+' | motion '+(document.documentElement.dataset.motion||'running')+' | OS reduce '+DP.reduced()+' | maxTouch '+navigator.maxTouchPoints+' | y '+Math.round(scrollY)}
-    bd.style.cssText='position:fixed;left:6px;right:6px;top:6px;z-index:9999;background:#FFC53D;color:#111;font:600 11px/1.4 monospace;padding:6px 8px;border-radius:6px;pointer-events:none';
-    document.body.appendChild(bd);dbgt();addEventListener('scroll',dbgt,{passive:true})}
   /* hero parallax: the video drifts slower than the page */
   var px=$$('[data-parallax]'),pr=0;
   function par(){pr=0;var y=live()?scrollY:0;px.forEach(function(el){el.style.transform=y>innerHeight*1.3?el.style.transform:'translate3d(0,'+(y*(+el.dataset.parallax)).toFixed(1)+'px,0)'})}
