@@ -106,14 +106,14 @@ function initTicker(){var tracks=$$('.ticker-inner,.mq-inner');if(!tracks.length
 /* ---- smooth scroll: inertial wheel (desktop pointers), eased anchors, hero parallax. Native touch scrolling is left alone. ---- */
 function initSmooth(){
   /* feel: lower SPEED = slower page, higher SMOOTH = longer, softer start and stop */
-  var SPEED=.6,SMOOTH=.42,MAXV=2200;
+  var SPEED=.6,SMOOTH=.42,MAXV=2200,sm=SMOOTH;
   var de=document.documentElement,cur=scrollY,tgt=cur,vel=0,lastSet=cur,raf=0,last=0,anim=null,fine=!!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches);
   function live(){return !DP.reduced()&&!DP.motionPaused()}
   function max(){return Math.max(0,de.scrollHeight-innerHeight)}
   function clamp(v){return Math.min(max(),Math.max(0,v))}
   function ease(p){return p<.5?8*p*p*p*p:1-Math.pow(-2*p+2,4)/2}
   /* critically damped spring (smooth-damp): velocity ramps up and eases out, no sudden start */
-  function damp(dt){var w=2/SMOOTH,x=w*dt,e=1/(1+x+.48*x*x+.235*x*x*x),ch=cur-tgt,lim=MAXV*SMOOTH;ch=Math.max(-lim,Math.min(lim,ch));var t=(vel+w*ch)*dt;vel=(vel-w*t)*e;var o=tgt+(ch+t)*e;
+  function damp(dt){var w=2/sm,x=w*dt,e=1/(1+x+.48*x*x+.235*x*x*x),ch=cur-tgt,lim=MAXV*sm;ch=Math.max(-lim,Math.min(lim,ch));var t=(vel+w*ch)*dt;vel=(vel-w*t)*e;var o=tgt+(ch+t)*e;
     cur=o}
   function tick(t){raf=0;var dt=Math.min(.05,(t-(last||t-16))/1000);last=t;
     if(anim){var p=Math.min(1,(t-anim.t0)/anim.d);cur=anim.from+(anim.to-anim.from)*ease(p);tgt=cur;vel=0;if(p>=1)anim=null}
@@ -130,7 +130,20 @@ function initSmooth(){
   if(fine)addEventListener('wheel',function(e){
     if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
     e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
-    var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);run()},{passive:false});
+    var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);sm=SMOOTH;run()},{passive:false});
+  /* EXPERIMENTAL phone touch smoothing, off unless you open the site once with ?touch=1 (turn off with ?touch=0).
+     Native touch scrolling already has inertia; this replaces it with the same spring as the wheel. */
+  var tq=(location.search.match(/[?&]touch=([01])/)||[])[1];if(tq==='1')DP.lsSet('dp_touch','1');if(tq==='0')DP.lsSet('dp_touch','0');
+  if(!fine&&DP.lsGet('dp_touch',null)==='1'){var ty=0,tx=0,ts=0,mode=0,hist=[];
+    addEventListener('touchstart',function(e){mode=0;if(e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)||e.target.closest('input,textarea,select,iframe,video[controls]')){mode=-1;return}
+      var t=e.touches[0];ty=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
+    addEventListener('touchmove',function(e){if(mode===-1)return;if(e.touches.length!==1){mode=-1;return}var t=e.touches[0];
+      if(mode===0){var ax=Math.abs(t.clientX-tx),ay=Math.abs(t.clientY-ty);if(ax<4&&ay<4)return;mode=ay>=ax?1:-1;if(mode===-1)return}
+      if(e.cancelable)e.preventDefault();hist.push([performance.now(),t.clientY]);if(hist.length>6)hist.shift();
+      tgt=clamp(ts-(t.clientY-ty));sm=.14;run()},{passive:false});
+    addEventListener('touchend',function(){if(mode!==1)return;mode=0;var n=hist.length,a=hist[0],b=hist[n-1],dt=(b[0]-a[0])/1000;
+      if(n>1&&dt>0&&performance.now()-b[0]<90)tgt=clamp(tgt-(b[1]-a[1])/dt*.3);sm=.5;run()},{passive:true});
+  }
   /* hero parallax: the video drifts slower than the page */
   var px=$$('[data-parallax]'),pr=0;
   function par(){pr=0;var y=live()?scrollY:0;px.forEach(function(el){el.style.transform=y>innerHeight*1.3?el.style.transform:'translate3d(0,'+(y*(+el.dataset.parallax)).toFixed(1)+'px,0)'})}
