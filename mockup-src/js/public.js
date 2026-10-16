@@ -142,15 +142,14 @@ function initSmooth(){
 function initVideos(){var vs=$$('video[data-loop]');if(!vs.length)return;
   function sync(v){if(!DP.motionPaused()&&v._in!==false){var p=v.play();if(p&&p.catch)p.catch(function(){})}else v.pause()}
   var io='IntersectionObserver' in window?new IntersectionObserver(function(es){es.forEach(function(e){e.target._in=e.isIntersecting;sync(e.target)})},{threshold:.15}):null;
-  vs.forEach(function(v){if(io)io.observe(v);else sync(v)});
+  vs.forEach(function(v){if(v.offsetParent!==null){v.preload='auto';v.muted=true;sync(v)}if(io)io.observe(v);else sync(v)});
   document.addEventListener('dp:motion',function(){vs.forEach(sync)})}
 function initHero(){var heroes=$$('[data-hero]');
-  /* the sign powers up on every visit, but only once the page has really loaded (fonts, images) so the flicker is actually seen */
+  /* the sign powers up on every visit, right away: it only waits for the heading font (max 0.7 s) so it never flashes in the wrong font */
   if(DP.motionPaused())heroes.forEach(function(h){h.classList.add('lit')});
-  else{var started=false,go=function(){if(started)return;started=true;requestAnimationFrame(function(){requestAnimationFrame(function(){document.documentElement.classList.add('hero-go')})})};
-    var ready=function(){var f=document.fonts&&document.fonts.ready;(f?Promise.race([f,new Promise(function(r){setTimeout(r,1500)})]):Promise.resolve()).then(function(){setTimeout(go,250)})};
-    if(document.readyState==='complete')ready();else addEventListener('load',ready);
-    setTimeout(go,3500)}
+  else{var started=false,go=function(){if(started)return;started=true;requestAnimationFrame(function(){document.documentElement.classList.add('hero-go')})};
+    var f=document.fonts&&document.fonts.ready;(f?Promise.race([f,new Promise(function(r){setTimeout(r,700)})]):Promise.resolve()).then(go);
+    setTimeout(go,900)}
   document.addEventListener('dp:motion',function(){if(DP.motionPaused())heroes.forEach(function(h){h.classList.add('lit')})});
   $$('[data-glow-zone]').forEach(function(z){var g=$('[data-glow]',z);if(!g||!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
     z.addEventListener('mousemove',function(e){if(DP.motionPaused()||DP.reduced())return;var r=(g.offsetParent||z).getBoundingClientRect();g.style.transform='translate('+(e.clientX-r.left)+'px,'+(e.clientY-r.top)+'px)'})})}
