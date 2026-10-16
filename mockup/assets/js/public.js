@@ -103,7 +103,7 @@ function initTicker(){var tracks=$$('.ticker-inner,.mq-inner');if(!tracks.length
     if(Math.abs(rate-1)>.01||target>1.01)requestAnimationFrame(loop);else{running=false;rate=1;tracks.forEach(function(t){var a=t.getAnimations()[0];a&&a.updatePlaybackRate(1)})}}
   addEventListener('scroll',function(){var now=performance.now(),dy=Math.abs(window.scrollY-last),dt=Math.max(now-lt,16);last=window.scrollY;lt=now;
     target=Math.max(target,Math.min(1+dy/dt/1.2*0.4,1.4));if(!running&&!DP.motionPaused()){running=true;requestAnimationFrame(loop)}},{passive:true})}
-/* ---- smooth scroll: inertial wheel (desktop pointers), eased anchors, hero parallax. Native touch scrolling is left alone. ---- */
+/* ---- smooth scroll: inertial wheel (desktop pointers), eased anchors, hero parallax. Phones keep their own native touch scrolling. ---- */
 function initSmooth(){
   /* feel: lower SPEED = slower page, higher SMOOTH = longer, softer start and stop */
   var SPEED=.6,SMOOTH=.42,MAXV=2200,sm=SMOOTH;
@@ -132,27 +132,6 @@ function initSmooth(){
     if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
     e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
     var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);sm=SMOOTH;run()},{passive:false});
-  /* phone touch smoothing: touch devices only. The page's own vertical touch scrolling is switched off with touch-action
-     (so the browser can never fight us or take a swipe over mid-gesture) and the same spring as the wheel drives it instead. */
-  var touchOn=('ontouchstart' in window)||(navigator.maxTouchPoints>0),noTS=false;
-  function setTS(){de.classList.toggle('ts',touchOn&&!noTS&&live())}
-  if(touchOn){var ty=0,tx=0,ts=0,mode=0,hist=[],ly=0;
-    /* a third-party iframe (Shotgun) can't see our touches: leave the page fully native once one exists */
-    function seeIframe(){if(document.querySelector('iframe')){noTS=true;setTS()}}
-    seeIframe();if(window.MutationObserver)new MutationObserver(seeIframe).observe(document.documentElement,{childList:true,subtree:true});
-    setTS();document.addEventListener('dp:motion',setTS);
-    addEventListener('touchstart',function(e){mode=0;if(noTS||e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)){mode=-1;return}
-      var t=e.touches[0];ty=ly=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
-    addEventListener('touchmove',function(e){if(mode===-1)return;if(e.touches.length!==1){mode=-1;return}var t=e.touches[0];
-      if(mode===0){var ax=Math.abs(t.clientX-tx),ay=Math.abs(t.clientY-ty);if(ax<4&&ay<4)return;mode=ay>=ax?1:-1;if(mode===-1)return}
-      if(e.cancelable)e.preventDefault();
-      var y=t.clientY;if(Math.abs(y-ly)<3)y=ly+(y-ly)*.5;ly=y;   /* slow, tiny movements are mostly sensor noise: damp them */
-      var now=performance.now();hist.push([now,y]);while(hist.length>2&&now-hist[0][0]>110)hist.shift();
-      tgt=clamp(ts-(y-ty));sm=.14;run()},{passive:false});
-    addEventListener('touchend',function(){if(mode!==1)return;mode=0;var n=hist.length,a=hist[0],b=hist[n-1],dt=(b[0]-a[0])/1000;
-      if(n>1&&dt>.016&&performance.now()-b[0]<90){var f=-(b[1]-a[1])/dt*.22,L=innerHeight*.9;tgt=clamp(tgt+Math.max(-L,Math.min(L,f)))}sm=.5;run()},{passive:true});
-    addEventListener('touchcancel',function(){mode=0;sm=.5;run()},{passive:true});
-  }
   /* hero parallax: the video drifts slower than the page */
   var px=$$('[data-parallax]'),pr=0;
   function par(){pr=0;var y=live()?scrollY:0;px.forEach(function(el){el.style.transform=y>innerHeight*1.3?el.style.transform:'translate3d(0,'+(y*(+el.dataset.parallax)).toFixed(1)+'px,0)'})}
