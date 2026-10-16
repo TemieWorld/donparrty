@@ -14,13 +14,13 @@ DP.tiers=[
  {name:'LAST TICKET',price:'—',status:'Bientôt en vente',state:'soon'}];
 DP.lineup=[
  {name:'BLISSMAN',handle:'@blisssman',flag:'',role:'ASAKE OFFICIAL DJ',rot:'-1.5deg',photo:'artists/blissman'},
- {name:'XEN',handle:'@xen.niat ⭐',flag:'',role:'DJ'},
- {name:'DJ TALVI',handle:'@talvimusic',flag:'🇳🇬',role:'DJ'},
+ {name:'XEN',handle:'@xen.niat ⭐',flag:'',role:'DJ',photo:'artists/xen'},
+ {name:'DJ TALVI',handle:'@talvimusic',flag:'🇳🇬',role:'DJ',photo:'artists/talvi'},
  {name:'JIM GORDON',handle:'@_jimgordon',flag:'🇫🇷🇳🇬',role:'DJ'},
- {name:'DON MASSIMO',handle:'@donmassimoo_',flag:'🇳🇬',role:'DJ'},
- {name:'WAYANS',handle:'@wayansboy',flag:'🇳🇬',role:'DJ'},
+ {name:'DON MASSIMO',handle:'@donmassimoo_',flag:'🇳🇬',role:'DJ',photo:'artists/don-massimo'},
+ {name:'WAYANS',handle:'@wayansboy',flag:'🇳🇬',role:'DJ',photo:'artists/wayans'},
  {name:'21VIIBEZ',handle:'@21viibez',flag:'',role:'HOST'},
- {name:'DRSK',handle:'@deejay.drsk',flag:'',role:'🥁 DRUMS'}];
+ {name:'DRSK',handle:'@deejay.drsk',flag:'',role:'🥁 DRUMS',photo:'artists/drsk'}];
 DP.series=['All','Night of Afrobeats','Rooftop','Detty December','Jeunesse Dorée','Love & Summer','Other'];
 /* nights shown in the design's archive index (newest first). The 4 extra real nights are kept as unpublished drafts. */
 function N(slug,pre,name,date,venue,series,credits,photos,pub){return{slug:slug,pre:pre,name:name,date:date,venue:venue,series:series,credits:credits||[],published:pub!==false,photoCount:photos||12}}

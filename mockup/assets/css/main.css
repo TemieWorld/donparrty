@@ -201,3 +201,13 @@ html[data-nl=off] .nl-sec{display:none!important}
 
 /* full-bleed bands: run wall to wall like the design, even when the page column is capped */
 .ticker,.bleed,.m-col>.banner,.d-col .banner{width:100vw;margin-left:calc(50% - 50vw);box-sizing:border-box}
+
+/* sticky header: the banner scrolls away, the nav stays; page content passes under it */
+html{scroll-padding-top:76px}
+.hdr-sticky{position:sticky;top:0;z-index:50}
+.hdr-sticky::before{content:"";position:absolute;z-index:-1;top:0;bottom:0;left:50%;width:100vw;margin-left:-50vw;background:#050505;border-bottom:1px solid #222624}
+.hdr-home::before{background:transparent;border-bottom-color:transparent;transition:background .25s,border-color .25s}
+html.hdr-scrolled .hdr-home::before{background:#050505;border-bottom-color:#222624}
+/* motion toggle icons are drawn, never emoji glyphs */
+.ml>span{white-space:nowrap;display:inline-flex;align-items:center}
+.ml svg{width:.78em;height:.78em;margin-right:.42em;fill:currentColor;flex:none}

@@ -31,6 +31,7 @@ function initHeader(){
   openers.forEach(function(b){b.addEventListener('click',function(){setMenu(!menu.classList.contains('open'))})});
   $$('a',menu).forEach(function(a){a.addEventListener('click',function(){setMenu(false)})});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&menu.classList.contains('open'))setMenu(false)});
+  var de=document.documentElement;function sc(){de.classList.toggle('hdr-scrolled',scrollY>8)}addEventListener('scroll',sc,{passive:true});sc();
   addEventListener('resize',function(){if(innerWidth>=1100&&menu.classList.contains('open'))setMenu(false)});
   /* keep everything still while the pane is open: no page scroll behind it, no bounce when its content fits */
   function still(e){if(!menu.classList.contains('open'))return;var inside=menu.contains(e.target);if(!inside||menu.scrollHeight<=menu.clientHeight+1)e.preventDefault()}
@@ -71,7 +72,7 @@ function initSticky(){var bar=$('#sticky');if(!bar)return;if(document.body.datas
   else{vis=false;upd();tix.forEach(function(t){new IntersectionObserver(function(es){vis=es[0].isIntersecting;upd()},{threshold:.1}).observe(t)})}}
 /* ---- anchors: m and d variants both exist, so scroll to the visible one ---- */
 function anchorEl(n){return $$('[data-anchor='+n+']').filter(function(e){return e.offsetParent!==null})[0]}
-function goAnchor(n,smooth){var e=anchorEl(n);if(!e)return false;e.scrollIntoView({behavior:smooth&&!DP.reduced()?'smooth':'auto',block:'start'});return true}
+function goAnchor(n,smooth){var e=anchorEl(n);if(!e)return false;var h=$$('.hdr-sticky').filter(function(x){return x.offsetParent!==null})[0],y=e.getBoundingClientRect().top+scrollY-((h?h.offsetHeight:0)+8);DP.scrollToY(y,smooth);return true}
 document.addEventListener('click',function(e){var a=e.target.closest('a[href*="#"]');if(!a)return;var u=new URL(a.getAttribute('href'),location.href);if(u.pathname!==location.pathname||!u.hash)return;var n=u.hash.slice(1);if(anchorEl(n)){e.preventDefault();goAnchor(n,true);history.replaceState(null,'','#'+n)}});
 function initAnchors(){var h=(location.hash||'').slice(1);if(h&&$$('[data-anchor='+h+']').length)setTimeout(function(){goAnchor(h,false)},60)}
 /* ---- countdown ---- */
@@ -102,6 +103,39 @@ function initTicker(){var tracks=$$('.ticker-inner,.mq-inner');if(!tracks.length
     if(Math.abs(rate-1)>.01||target>1.01)requestAnimationFrame(loop);else{running=false;rate=1;tracks.forEach(function(t){var a=t.getAnimations()[0];a&&a.updatePlaybackRate(1)})}}
   addEventListener('scroll',function(){var now=performance.now(),dy=Math.abs(window.scrollY-last),dt=Math.max(now-lt,16);last=window.scrollY;lt=now;
     target=Math.max(target,Math.min(1+dy/dt/1.2*0.4,1.4));if(!running&&!DP.motionPaused()){running=true;requestAnimationFrame(loop)}},{passive:true})}
+/* ---- smooth scroll: inertial wheel (desktop pointers), eased anchors, hero parallax. Native touch scrolling is left alone. ---- */
+function initSmooth(){
+  /* feel: lower SPEED = slower page, higher SMOOTH = longer, softer start and stop */
+  var SPEED=.6,SMOOTH=.42,MAXV=2200;
+  var de=document.documentElement,cur=scrollY,tgt=cur,vel=0,lastSet=cur,raf=0,last=0,anim=null,fine=!!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches);
+  function live(){return !DP.reduced()&&!DP.motionPaused()}
+  function max(){return Math.max(0,de.scrollHeight-innerHeight)}
+  function clamp(v){return Math.min(max(),Math.max(0,v))}
+  function ease(p){return p<.5?8*p*p*p*p:1-Math.pow(-2*p+2,4)/2}
+  /* critically damped spring (smooth-damp): velocity ramps up and eases out, no sudden start */
+  function damp(dt){var w=2/SMOOTH,x=w*dt,e=1/(1+x+.48*x*x+.235*x*x*x),ch=cur-tgt,lim=MAXV*SMOOTH;ch=Math.max(-lim,Math.min(lim,ch));var t=(vel+w*ch)*dt;vel=(vel-w*t)*e;var o=tgt+(ch+t)*e;
+    cur=o}
+  function tick(t){raf=0;var dt=Math.min(.05,(t-(last||t-16))/1000);last=t;
+    if(anim){var p=Math.min(1,(t-anim.t0)/anim.d);cur=anim.from+(anim.to-anim.from)*ease(p);tgt=cur;vel=0;if(p>=1)anim=null}
+    else{damp(dt);if(Math.abs(tgt-cur)<.3&&Math.abs(vel)<6){cur=tgt;vel=0}}
+    lastSet=cur;scrollTo(0,cur);
+    if(anim||cur!==tgt||vel)raf=requestAnimationFrame(tick);else last=0}
+  function run(){if(!raf){last=0;raf=requestAnimationFrame(tick)}}
+  /* anything else that moves the page (keyboard, scrollbar drag, jump links) just resyncs us */
+  addEventListener('scroll',function(){if(Math.abs(scrollY-lastSet)>1.5){cur=tgt=lastSet=scrollY;vel=0;anim=null}},{passive:true});
+  DP.scrollToY=function(y,smooth){y=clamp(y);if(!smooth||!live()||Math.abs(y-scrollY)<2){anim=null;vel=0;cur=tgt=lastSet=y;scrollTo(0,y);return}
+    cur=scrollY;anim={from:cur,to:y,t0:performance.now(),d:Math.min(1700,Math.max(900,Math.abs(y-cur)*.85))};run()};
+  function inner(el,dy){for(;el&&el!==de&&el.nodeType===1;el=el.parentElement){var cs=getComputedStyle(el);
+    if(/(auto|scroll)/.test(cs.overflowY)&&el.scrollHeight>el.clientHeight+1){if(dy>0?el.scrollTop+el.clientHeight<el.scrollHeight-1:el.scrollTop>0)return true}}return false}
+  if(fine)addEventListener('wheel',function(e){
+    if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
+    e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
+    var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);run()},{passive:false});
+  /* hero parallax: the video drifts slower than the page */
+  var px=$$('[data-parallax]'),pr=0;
+  function par(){pr=0;var y=live()?scrollY:0;px.forEach(function(el){el.style.transform=y>innerHeight*1.3?el.style.transform:'translate3d(0,'+(y*(+el.dataset.parallax)).toFixed(1)+'px,0)'})}
+  if(px.length){addEventListener('scroll',function(){if(!pr)pr=requestAnimationFrame(par)},{passive:true});document.addEventListener('dp:motion',par);par()}
+}
 /* ---- hero: sign lit state, cursor glow (desktop) ---- */
 /* ---- looping videos: play only when visible, not paused, not reduced motion (poster stays) ---- */
 function initVideos(){var vs=$$('video[data-loop]');if(!vs.length)return;
@@ -143,5 +177,5 @@ function initTakedown(){var dlg=$('#td-dlg');if(!dlg)return;var form=$('[data-td
     DP.submitFx(btn,700,function(){var s=S(),fd=new FormData(form),reason=DP.chipValues(form,'reason')[0]||'—';
       s.apps.unshift({id:DP.store.id(),type:'retrait',name:fd.get('photo')?'Photo '+fd.get('photo'):'Demande de retrait',contact:fd.get('email'),ago:'à l’instant',status:'new',photo:fd.get('photo')||fd.get('link'),msg:reason,fields:[['Photo',fd.get('photo')||fd.get('link')||'—'],['Motif',reason],['Demandé par',fd.get('email')]]});
       DP.store.save();setTimeout(function(){DP.closeDlg(dlg);form.reset();DP.toast('Demande reçue — la photo sera masquée dès examen. Merci 💚')},500)})})}
-document.addEventListener('DOMContentLoaded',function(){[initHeader,initBanner,initSettings,initConsent,initReveal,initSticky,initAnchors,initCountdown,initTicker,initHero,initVideos,initScramble,initNewsletter,initTakedown].forEach(function(f){try{f()}catch(e){if(window.console)console.error('init failed:',f.name,e)}})});
+document.addEventListener('DOMContentLoaded',function(){[initHeader,initBanner,initSettings,initConsent,initReveal,initSticky,initSmooth,initAnchors,initCountdown,initTicker,initHero,initVideos,initScramble,initNewsletter,initTakedown].forEach(function(f){try{f()}catch(e){if(window.console)console.error('init failed:',f.name,e)}})});
 })();
