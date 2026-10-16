@@ -119,7 +119,7 @@ function initSmooth(){
     if(anim){var p=Math.min(1,(t-anim.t0)/anim.d);cur=anim.from+(anim.to-anim.from)*ease(p);tgt=cur;vel=0;if(p>=1)anim=null}
     else{damp(dt);if(Math.abs(tgt-cur)<.3&&Math.abs(vel)<6){cur=tgt;vel=0}}
     var mx=max();if(tgt>mx)tgt=mx;if(cur>mx){cur=mx;vel=0}if(cur<0){cur=0;vel=0}
-    lastSet=cur;scrollTo(0,cur);
+    lastSet=cur;var dpr=window.devicePixelRatio||1;scrollTo(0,Math.round(cur*dpr)/dpr);
     if(anim||cur!==tgt||vel)raf=requestAnimationFrame(tick);else last=0}
   function run(){if(!raf){last=0;raf=requestAnimationFrame(tick)}}
   /* anything else that moves the page (keyboard, scrollbar drag, jump links) just resyncs us */
@@ -132,17 +132,23 @@ function initSmooth(){
     if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
     e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
     var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);sm=SMOOTH;run()},{passive:false});
-  /* phone touch smoothing: touch devices only. Same spring as the wheel instead of the browser's own touch inertia. */
-  var touchOn=('ontouchstart' in window)||(navigator.maxTouchPoints>0);
-  if(touchOn){var ty=0,tx=0,ts=0,mode=0,hist=[];
-    addEventListener('touchstart',function(e){mode=0;if(e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)||e.target.closest('input,textarea,select,iframe,video[controls]')){mode=-1;return}
-      var t=e.touches[0];ty=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
+  /* phone touch smoothing: touch devices only. The page's own vertical touch scrolling is switched off with touch-action
+     (so the browser can never fight us or take a swipe over mid-gesture) and the same spring as the wheel drives it instead. */
+  var touchOn=('ontouchstart' in window)||(navigator.maxTouchPoints>0),noTS=false;
+  function setTS(){de.classList.toggle('ts',touchOn&&!noTS&&live())}
+  if(touchOn){var ty=0,tx=0,ts=0,mode=0,hist=[],ly=0;
+    /* a third-party iframe (Shotgun) can't see our touches: leave the page fully native once one exists */
+    function seeIframe(){if(document.querySelector('iframe')){noTS=true;setTS()}}
+    seeIframe();if(window.MutationObserver)new MutationObserver(seeIframe).observe(document.documentElement,{childList:true,subtree:true});
+    setTS();document.addEventListener('dp:motion',setTS);
+    addEventListener('touchstart',function(e){mode=0;if(noTS||e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)){mode=-1;return}
+      var t=e.touches[0];ty=ly=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
     addEventListener('touchmove',function(e){if(mode===-1)return;if(e.touches.length!==1){mode=-1;return}var t=e.touches[0];
       if(mode===0){var ax=Math.abs(t.clientX-tx),ay=Math.abs(t.clientY-ty);if(ax<4&&ay<4)return;mode=ay>=ax?1:-1;if(mode===-1)return}
-      /* the browser already started scrolling on its own: step aside completely */
-      if(!e.cancelable){mode=-1;cur=tgt=lastSet=scrollY;vel=0;anim=null;return}
-      e.preventDefault();var now=performance.now();hist.push([now,t.clientY]);while(hist.length>2&&now-hist[0][0]>110)hist.shift();
-      tgt=clamp(ts-(t.clientY-ty));sm=.14;run()},{passive:false});
+      if(e.cancelable)e.preventDefault();
+      var y=t.clientY;if(Math.abs(y-ly)<3)y=ly+(y-ly)*.5;ly=y;   /* slow, tiny movements are mostly sensor noise: damp them */
+      var now=performance.now();hist.push([now,y]);while(hist.length>2&&now-hist[0][0]>110)hist.shift();
+      tgt=clamp(ts-(y-ty));sm=.14;run()},{passive:false});
     addEventListener('touchend',function(){if(mode!==1)return;mode=0;var n=hist.length,a=hist[0],b=hist[n-1],dt=(b[0]-a[0])/1000;
       if(n>1&&dt>.016&&performance.now()-b[0]<90){var f=-(b[1]-a[1])/dt*.22,L=innerHeight*.9;tgt=clamp(tgt+Math.max(-L,Math.min(L,f)))}sm=.5;run()},{passive:true});
     addEventListener('touchcancel',function(){mode=0;sm=.5;run()},{passive:true});

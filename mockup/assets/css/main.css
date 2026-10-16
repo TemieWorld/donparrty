@@ -211,3 +211,6 @@ html.hdr-scrolled .hdr-home::before{background:#050505;border-bottom-color:#2226
 /* motion toggle icons are drawn, never emoji glyphs */
 .ml>span{white-space:nowrap;display:inline-flex;align-items:center}
 .ml svg{width:.78em;height:.78em;margin-right:.42em;fill:currentColor;flex:none}
+
+/* phone touch smoothing owns vertical touch scrolling (set by JS only while it is active) */
+html.ts{touch-action:pan-x pinch-zoom;overscroll-behavior:none}
