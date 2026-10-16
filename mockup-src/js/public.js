@@ -107,8 +107,8 @@ function initTicker(){var tracks=$$('.ticker-inner,.mq-inner');if(!tracks.length
 function initSmooth(){
   /* feel: lower SPEED = slower page, higher SMOOTH = longer, softer start and stop */
   var SPEED=.6,SMOOTH=.42,MAXV=2200,sm=SMOOTH;
-  var de=document.documentElement,cur=scrollY,tgt=cur,vel=0,lastSet=cur,raf=0,last=0,anim=null,fine=!!(window.matchMedia&&matchMedia('(hover:hover) and (pointer:fine)').matches);
-  function live(){return !DP.reduced()&&!DP.motionPaused()}
+  var de=document.documentElement,cur=scrollY,tgt=cur,vel=0,lastSet=cur,raf=0,last=0,anim=null;
+  function live(){return !DP.motionPaused()}
   function max(){return Math.max(0,de.scrollHeight-innerHeight)}
   function clamp(v){return Math.min(max(),Math.max(0,v))}
   function ease(p){return p<.5?8*p*p*p*p:1-Math.pow(-2*p+2,4)/2}
@@ -127,14 +127,15 @@ function initSmooth(){
     cur=scrollY;anim={from:cur,to:y,t0:performance.now(),d:Math.min(1700,Math.max(900,Math.abs(y-cur)*.85))};run()};
   function inner(el,dy){for(;el&&el!==de&&el.nodeType===1;el=el.parentElement){var cs=getComputedStyle(el);
     if(/(auto|scroll)/.test(cs.overflowY)&&el.scrollHeight>el.clientHeight+1){if(dy>0?el.scrollTop+el.clientHeight<el.scrollHeight-1:el.scrollTop>0)return true}}return false}
-  if(fine)addEventListener('wheel',function(e){
+  addEventListener('wheel',function(e){
     if(e.ctrlKey||e.defaultPrevented||!live()||document.body.style.overflow==='hidden'||Math.abs(e.deltaX)>Math.abs(e.deltaY)||inner(e.target,e.deltaY))return;
     e.preventDefault();anim=null;if(!raf){cur=tgt=lastSet=scrollY;vel=0}
     var d=e.deltaY*(e.deltaMode===1?34:e.deltaMode===2?innerHeight:1);tgt=clamp(tgt+Math.max(-140,Math.min(140,d))*SPEED);sm=SMOOTH;run()},{passive:false});
-  /* EXPERIMENTAL phone touch smoothing, off unless you open the site once with ?touch=1 (turn off with ?touch=0).
-     Native touch scrolling already has inertia; this replaces it with the same spring as the wheel. */
+  /* phone touch smoothing: on by default for touch devices (?touch=0 turns it off, ?touch=1 back on).
+     Same spring as the wheel instead of the browser's own touch inertia. */
   var tq=(location.search.match(/[?&]touch=([01])/)||[])[1];if(tq==='1')DP.lsSet('dp_touch','1');if(tq==='0')DP.lsSet('dp_touch','0');
-  if(!fine&&DP.lsGet('dp_touch',null)==='1'){var ty=0,tx=0,ts=0,mode=0,hist=[];
+  var touchDev=('ontouchstart' in window)||(navigator.maxTouchPoints>0),touchOn=touchDev&&DP.lsGet('dp_touch','1')!=='0';
+  if(touchOn){var ty=0,tx=0,ts=0,mode=0,hist=[];
     addEventListener('touchstart',function(e){mode=0;if(e.touches.length!==1||!live()||document.body.style.overflow==='hidden'||inner(e.target,1)||inner(e.target,-1)||e.target.closest('input,textarea,select,iframe,video[controls]')){mode=-1;return}
       var t=e.touches[0];ty=t.clientY;tx=t.clientX;anim=null;cur=tgt=lastSet=scrollY;vel=0;ts=cur;hist=[[performance.now(),ty]]},{passive:true});
     addEventListener('touchmove',function(e){if(mode===-1)return;if(e.touches.length!==1){mode=-1;return}var t=e.touches[0];
@@ -144,6 +145,10 @@ function initSmooth(){
     addEventListener('touchend',function(){if(mode!==1)return;mode=0;var n=hist.length,a=hist[0],b=hist[n-1],dt=(b[0]-a[0])/1000;
       if(n>1&&dt>0&&performance.now()-b[0]<90)tgt=clamp(tgt-(b[1]-a[1])/dt*.3);sm=.5;run()},{passive:true});
   }
+  if(/[?&]debug=1/.test(location.search)){var bd=document.createElement('div'),v=((Array.prototype.find.call(document.scripts,function(s){return /public\.js/.test(s.src)})||{}).src||'').split('v=')[1]||'?';
+    function dbgt(){bd.textContent='build '+v+' | touch dev '+touchDev+' | touch smooth '+touchOn+' | motion '+(document.documentElement.dataset.motion||'running')+' | OS reduce '+DP.reduced()+' | maxTouch '+navigator.maxTouchPoints+' | y '+Math.round(scrollY)}
+    bd.style.cssText='position:fixed;left:6px;right:6px;top:6px;z-index:9999;background:#FFC53D;color:#111;font:600 11px/1.4 monospace;padding:6px 8px;border-radius:6px;pointer-events:none';
+    document.body.appendChild(bd);dbgt();addEventListener('scroll',dbgt,{passive:true})}
   /* hero parallax: the video drifts slower than the page */
   var px=$$('[data-parallax]'),pr=0;
   function par(){pr=0;var y=live()?scrollY:0;px.forEach(function(el){el.style.transform=y>innerHeight*1.3?el.style.transform:'translate3d(0,'+(y*(+el.dataset.parallax)).toFixed(1)+'px,0)'})}
@@ -152,7 +157,7 @@ function initSmooth(){
 /* ---- hero: sign lit state, cursor glow (desktop) ---- */
 /* ---- looping videos: play only when visible, not paused, not reduced motion (poster stays) ---- */
 function initVideos(){var vs=$$('video[data-loop]');if(!vs.length)return;
-  function sync(v){if(!DP.reduced()&&!DP.motionPaused()&&v._in!==false){var p=v.play();if(p&&p.catch)p.catch(function(){})}else v.pause()}
+  function sync(v){if(!DP.motionPaused()&&v._in!==false){var p=v.play();if(p&&p.catch)p.catch(function(){})}else v.pause()}
   var io='IntersectionObserver' in window?new IntersectionObserver(function(es){es.forEach(function(e){e.target._in=e.isIntersecting;sync(e.target)})},{threshold:.15}):null;
   vs.forEach(function(v){if(io)io.observe(v);else sync(v)});
   document.addEventListener('dp:motion',function(){vs.forEach(sync)})}

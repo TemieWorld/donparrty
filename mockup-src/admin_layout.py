@@ -1,4 +1,5 @@
 import os, glob, json, html
+BUILD=os.environ.get("DP_BUILD","")
 E=html.escape
 TABS=[('overview','overview.html','Home'),('requests','requests.html','Requests'),('newsletter','newsletter.html','Newsletter'),('content','archives.html','Content'),('more','settings.html','More')]
 NAVMAP={'overview':'overview','requests':'requests','applications':'requests','newsletter':'newsletter','content':'content','archives':'content','banner':'content','partners':'content','settings':'more','login':''}
@@ -20,13 +21,13 @@ def layout(meta,body):
 <title>{E(title)} — Admin Don Parrty</title>
 <meta name="theme-color" content="#050505">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%276%27 fill=%27%23050505%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%276%27 fill=%27%233CFF4E%27/%3E%3C/svg%3E">
-<link rel="stylesheet" href="../assets/css/admin.css">
+<link rel="stylesheet" href="../assets/css/admin.css?v={BUILD}">
 <script>document.documentElement.className='js'</script>
 </head>
 <body class="adm" data-page="{meta.get('page','overview')}" data-root="../">
 {inner}
 <div id="toasts" role="status" aria-live="polite"></div>
-{''.join(f'<script src="../assets/js/{s}.js"></script>' for s in scripts)}
+{''.join(f'<script src="../assets/js/{s}.js?v={BUILD}"></script>' for s in scripts)}
 </body></html>'''
 def build(wr,split_meta,macros,HERE):
     n=0

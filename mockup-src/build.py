@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Static site generator for the Don Parrty mockup. Run: python3 build.py"""
-import re, json, os, shutil, glob, html
+import re, json, os, shutil, glob, html, time
+BUILD=time.strftime('%Y%m%d%H%M%S'); os.environ['DP_BUILD']=BUILD
 import brand
 HERE=os.path.dirname(os.path.abspath(__file__)); OUT=os.path.join(os.path.dirname(HERE),'mockup')
 E=html.escape
@@ -47,7 +48,7 @@ def _page(meta,title,scripts,sc,m_html,d_html):
 <link rel="preload" href="assets/fonts/anton-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/space-grotesk-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/league-spartan-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/css/main.css">
+<link rel="stylesheet" href="assets/css/main.css?v={BUILD}">
 <script>(function(){{var d=document.documentElement;d.className='js';try{{var m=localStorage.getItem('dp_motion');if(m==='"paused"'||(m===null&&matchMedia('(prefers-reduced-motion: reduce)').matches))d.dataset.motion='paused'}}catch(e){{}}}})()</script>
 </head>
 <body data-page="{meta.get('page','')}" data-scta="{1 if sc else 0}" data-root="">
@@ -58,7 +59,7 @@ def _page(meta,title,scripts,sc,m_html,d_html):
 {inc('menu_m')}
 {inc('dialogs')}
 {''.join(inc(n) for n in meta.get('inc',[]))}
-{''.join(f'<script src="assets/js/{s}.js"></script>' for s in scripts)}
+{''.join(f'<script src="assets/js/{s}.js?v={BUILD}"></script>' for s in scripts)}
 </body></html>'''
 def build():
     if os.path.isdir(OUT):
