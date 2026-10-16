@@ -145,9 +145,12 @@ function initVideos(){var vs=$$('video[data-loop]');if(!vs.length)return;
   vs.forEach(function(v){if(io)io.observe(v);else sync(v)});
   document.addEventListener('dp:motion',function(){vs.forEach(sync)})}
 function initHero(){var heroes=$$('[data-hero]');
-  var seen=false;try{seen=sessionStorage.getItem('dp_lit')==='1'}catch(e){}
-  heroes.forEach(function(h){if(seen||DP.reduced()||DP.motionPaused())h.classList.add('lit')});
-  if(!seen&&!DP.reduced()&&!DP.motionPaused()){try{sessionStorage.setItem('dp_lit','1')}catch(e){}}
+  /* the sign powers up on every visit, but only once the page has really loaded (fonts, images) so the flicker is actually seen */
+  if(DP.motionPaused())heroes.forEach(function(h){h.classList.add('lit')});
+  else{var started=false,go=function(){if(started)return;started=true;requestAnimationFrame(function(){requestAnimationFrame(function(){document.documentElement.classList.add('hero-go')})})};
+    var ready=function(){var f=document.fonts&&document.fonts.ready;(f?Promise.race([f,new Promise(function(r){setTimeout(r,1500)})]):Promise.resolve()).then(function(){setTimeout(go,250)})};
+    if(document.readyState==='complete')ready();else addEventListener('load',ready);
+    setTimeout(go,3500)}
   document.addEventListener('dp:motion',function(){if(DP.motionPaused())heroes.forEach(function(h){h.classList.add('lit')})});
   $$('[data-glow-zone]').forEach(function(z){var g=$('[data-glow]',z);if(!g||!matchMedia('(hover:hover) and (pointer:fine)').matches)return;
     z.addEventListener('mousemove',function(e){if(DP.motionPaused()||DP.reduced())return;var r=(g.offsetParent||z).getBoundingClientRect();g.style.transform='translate('+(e.clientX-r.left)+'px,'+(e.clientY-r.top)+'px)'})})}

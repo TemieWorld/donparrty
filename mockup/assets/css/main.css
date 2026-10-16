@@ -38,6 +38,8 @@ img,svg{display:block;max-width:100%}
 @keyframes dpBreathe{0%,100%{opacity:.5}50%{opacity:1}}
 @keyframes dpDraw{to{stroke-dashoffset:0}}
 @keyframes dpPower{0%{opacity:0}35%{opacity:.9}42%{opacity:.4}55%{opacity:1}64%{opacity:.65}100%{opacity:1}}
+/* neon sign starting up: hard on/off stutters, then it holds */
+@keyframes dpFlicker{0%{opacity:0}5%{opacity:1}9%{opacity:.04}15%{opacity:1}19%{opacity:.06}24%{opacity:.9}27%{opacity:0}34%{opacity:.75}37%{opacity:.05}44%{opacity:1}49%{opacity:.12}53%{opacity:1}60%{opacity:.35}64%{opacity:1}70%{opacity:.7}74%{opacity:1}100%{opacity:1}}
 @keyframes dpShimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
 @keyframes dpBannerIn{from{transform:translateY(-100%)}to{transform:none}}
 @keyframes dpRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
@@ -180,8 +182,10 @@ html[data-nl=off] .nl-sec{display:none!important}
 .seg-b{height:38px;padding:0 12px;border:0;border-radius:4px;background:none;color:#B9C1BC;font:500 12px 'Space Grotesk';display:flex;align-items:center}
 .seg-b[aria-pressed=true]{background:#F2F5F3;color:#050505}
 .v-d .seg-b{padding:0 14px;font-size:13px}
-.hero-sign .sign-fill{animation:dpPower 1.4s .3s ease-out both}
-.lit .hero-sign .sign-stroke{display:none}.lit .hero-sign .sign-fill{animation:none}
+.hero-sign .sign-fill{opacity:0}
+html.no-js .hero-sign .sign-fill{opacity:1}
+html.hero-go .hero-sign .sign-fill{animation:dpFlicker 2.1s linear both}
+.lit .hero-sign .sign-stroke{display:none}.lit .hero-sign .sign-fill{opacity:1;animation:none}
 .inp.bad{border:2px solid #FF4D4D}
 .fld.bad>.lab::after{content:' · obligatoire';}
 .fld .err{font:400 12px 'Space Grotesk'}
