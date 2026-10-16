@@ -1,0 +1,19 @@
+# Only the site and its build source are published. Everything else stays local.
+/*
+!/.gitignore
+!/.github/
+!/mockup/
+!/mockup-src/
+
+# Never published, wherever they are: notes, research, decisions, design briefs
+*.md
+*.MD
+*.markdown
+
+# Local junk and tooling
+.DS_Store
+node_modules
+*.log
+.env
+.env.*
+*.zip

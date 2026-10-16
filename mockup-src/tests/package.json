@@ -1,0 +1,1 @@
+{"name":"dp-mockup-tests","private":true,"type":"module","scripts":{"public":"node flows.mjs","admin":"node adminflows.mjs","smoke":"node smoke.mjs index.html,event.html,archives.html"},"dependencies":{"puppeteer-core":"*"}}

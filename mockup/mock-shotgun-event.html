@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Billets — simulation Shotgun</title><link rel="icon" href="data:,">
+<style>
+@font-face{font-family:'Space Grotesk';font-weight:400;src:url(assets/fonts/space-grotesk-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Space Grotesk';font-weight:500;src:url(assets/fonts/space-grotesk-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Space Grotesk';font-weight:700;src:url(assets/fonts/space-grotesk-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;src:url(assets/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:500;src:url(assets/fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2')}
+html,body{margin:0;background:#1C1C1C;font-family:'Space Grotesk',sans-serif;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+</style></head><body>
+<div id="w" style="background:#1C1C1C;border-radius:8px;padding:16px 12px;display:flex;flex-direction:column;gap:10px;font-family:'Space Grotesk'">
+<div style="font:700 20px 'Space Grotesk';color:#fff">Billets</div>
+<div id="rows" style="display:flex;flex-direction:column;gap:10px"></div>
+<div style="height:160px;border-radius:6px;border:1px dashed #333;display:flex;align-items:center;justify-content:center;font:500 10px 'JetBrains Mono';color:#777">… widget continues (info, CGV) …</div>
+<div id="ck" style="background:#2b2b2b;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px"><span style="font:400 12px/1.4 'Space Grotesk';color:#ddd">Ce widget utilise des cookies.</span><div style="display:flex;gap:6px"><button type="button" data-k style="flex:1;height:36px;border-radius:6px;background:#444;color:#fff;border:0;font:500 12px 'Space Grotesk'">Refuser</button><button type="button" data-k style="flex:1;height:36px;border-radius:6px;background:#fff;color:#111;border:0;font:500 12px 'Space Grotesk'">Accepter</button></div><span style="font:400 10px 'JetBrains Mono';color:#999">↑ Shotgun's own banner (explained in FAQ)</span></div>
+</div>
+<script>
+var T=[['EARLY BIRD','16,50 €','Épuisé',0],['RELEASE 1','20,00 €','Épuisé',0],['RELEASE 2','27,01 €','Épuisé',0],['RELEASE 3','35,20 €','',1],['LAST TICKET','—','Bientôt en vente',0]];
+document.getElementById('rows').innerHTML=T.map(function(t){return '<div style="background:#262626;border-radius:8px;padding:10px;display:flex;gap:10px;align-items:center"><div style="width:56px;height:56px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,#2e2e2e 0 6px,#333 6px 12px)"></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font:600 13px \'Space Grotesk\';color:#fff">'+t[0]+'</span><span style="font:400 13px \'Space Grotesk\';color:#bdbdbd">'+t[1]+'</span></div>'+
+ (t[3]?'<div style="display:flex;align-items:center;gap:4px"><button type="button" aria-label="moins" style="width:36px;height:36px;border-radius:50%;border:1px solid #555;background:none;color:#888">−</button><span class="q" style="width:20px;text-align:center;color:#fff;font:600 14px \'Space Grotesk\'">0</span><button type="button" aria-label="plus" style="width:36px;height:36px;border-radius:50%;border:0;background:#fff;color:#111">+</button></div>':'<span style="font:500 11px \'Space Grotesk\';color:#bdbdbd;background:#333;padding:5px 9px;border-radius:999px">'+t[2]+'</span>')+'</div>'}).join('');
+var q=0,qe=document.querySelector('.q');document.querySelectorAll('#rows button').forEach(function(b,i){b.onclick=function(){q=Math.max(0,q+(i?1:-1));qe.textContent=q}});
+document.querySelectorAll('[data-k]').forEach(function(b){b.onclick=function(){document.getElementById('ck').remove();post()}});
+function post(){try{parent.postMessage({dpHeight:Math.ceil(document.getElementById('w').getBoundingClientRect().height)},'*')}catch(e){}}
+post();addEventListener('load',post);addEventListener('resize',post);
+</script></body></html>
